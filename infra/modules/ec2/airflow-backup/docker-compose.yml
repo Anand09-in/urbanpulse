@@ -1,0 +1,77 @@
+
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.0
+  env_file: .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: '30'
+    AWS_DEFAULT_REGION: ap-south-1
+    _PIP_ADDITIONAL_REQUIREMENTS: '' 
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./requirements.txt:/requirements.txt
+  user: "50000:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    user: "0:0"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        pip install -r /requirements.txt --quiet
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --firstname Urban \
+          --lastname Pulse \
+          --role Admin \
+          --email admin@urbanpulse.dev \
+          --password admin || true
+        echo "==> Init complete"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver  # Tells the image's entrypoint to start the UI engine
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler  # Tells the image's entrypoint to start the executor engine
+    restart: always
+
+volumes:
+  postgres_data:

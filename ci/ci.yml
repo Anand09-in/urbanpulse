@@ -1,0 +1,48 @@
+name: CI checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt --quiet
+
+      - name: Validate DAG imports
+        run: |
+          python -c "
+          import ast, sys, os
+          dag_dir = 'dags'
+          errors = []
+          for f in os.listdir(dag_dir):
+              if f.endswith('.py'):
+                  try:
+                      ast.parse(open(f'{dag_dir}/{f}').read())
+                      print(f'OK: {f}')
+                  except SyntaxError as e:
+                      errors.append(f'FAIL: {f} — {e}')
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          "
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform validate
+        run: |
+          cd infra
+          terraform init -backend=false
+          terraform validate

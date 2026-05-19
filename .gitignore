@@ -1,0 +1,29 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+crash.log
+
+# Python
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+.env.example
+# AWS
+.aws/
+*.pem
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+infra/terraform.tfvars
+
+.pre-commit*
+commands.txt
+poetry.lock 
+pyproject.toml

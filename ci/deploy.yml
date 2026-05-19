@@ -1,0 +1,63 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── 1. Copy docker-compose + requirements to EC2 ──────────────
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/key.pem
+          chmod 600 /tmp/key.pem
+
+      - name: Copy docker-compose and requirements to EC2
+        run: |
+          scp -i /tmp/key.pem \
+            -o StrictHostKeyChecking=no \
+            docker-compose.yml requirements.txt setup.sh \
+            ec2-user@${{ secrets.EC2_PUBLIC_IP }}:~/urbanpulse/
+
+      # ── 2. Copy DAG files to EC2 ───────────────────────────────────
+      - name: Deploy DAGs to EC2
+        run: |
+          scp -i /tmp/key.pem \
+            -o StrictHostKeyChecking=no \
+            dags/*.py \
+            ec2-user@${{ secrets.EC2_PUBLIC_IP }}:~/urbanpulse/dags/
+        # Airflow picks up new DAGs within 30 seconds automatically
+        # No restart needed
+
+      # ── 3. Restart containers only if requirements changed ─────────
+      - name: Check if requirements changed
+        id: req_changed
+        run: |
+          git diff HEAD~1 HEAD --name-only | grep -q requirements.txt \
+            && echo "changed=true" >> $GITHUB_OUTPUT \
+            || echo "changed=false" >> $GITHUB_OUTPUT
+
+      - name: Restart Airflow if requirements changed
+        if: steps.req_changed.outputs.changed == 'true'
+        run: |
+          ssh -i /tmp/key.pem \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
+            "cd ~/urbanpulse && docker compose restart airflow-webserver airflow-scheduler"
+
+      - name: Cleanup SSH key
+        run: rm /tmp/key.pem
+
+      # ── 4. Verify DAG is live ──────────────────────────────────────
+      - name: Verify DAG deployed
+        run: |
+          sleep 35  # wait for Airflow 30s DAG scan
+          ssh -i /tmp/key.pem \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
+            "docker compose -f ~/urbanpulse/docker-compose.yml exec -T \
+             airflow-scheduler airflow dags list" | grep urbanpulse_daily_pipeline

@@ -1,0 +1,55 @@
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "urbanpulse-tf-state-798644229089"
+    key            = "infra/terraform.tfstate"
+    region         = "ap-south-1"
+    use_lockfile   = true
+    encrypt        = true
+    profile        = "urbanpulse"
+  }
+}
+
+provider "aws" {
+  region  = var.aws_region
+  profile = var.aws_profile
+
+  default_tags {
+    tags = {
+      project     = "urbanpulse"
+      environment = var.environment
+      managed_by  = "terraform"
+    }
+  }
+}
+
+module "networking" {
+  source      = "./modules/networking"
+  project     = var.project
+  aws_region  = var.aws_region
+  my_ip_cidr  = var.my_ip_cidr   # add this to variables.tf
+}
+
+module "iam" {
+  source  = "./modules/iam"
+  project = var.project
+}
+
+module "ec2" {
+  source           = "./modules/ec2"
+  project          = var.project
+  public_subnet_id = module.networking.public_subnet_a
+  ec2_sg_id        = module.networking.ec2_sg_id
+  public_key_path  = "~/.ssh/urbanpulse.pub"
+  github_username  = var.github_username  
+  github_repo      = var.github_repo      
+}
+
