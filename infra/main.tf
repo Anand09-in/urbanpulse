@@ -80,3 +80,10 @@ module "glue" {
   athena_bucket  = module.s3.athena_bucket   # NEW
   kms_key_arn    = module.s3.kms_key_arn     # NEW
 }
+
+module "oidc" {
+  source          = "./modules/oidc"
+  project         = var.project
+  github_username = var.github_username
+  github_repo     = var.github_repo
+}

@@ -4,60 +4,150 @@ on:
   push:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
+
   deploy:
+    name: Deploy UrbanPulse
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2    # needed for git diff to detect changes
 
-      # ── 1. Copy docker-compose + requirements to EC2 ──────────────
+      # ── Auth ───────────────────────────────────────────────────────
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      # ── Terraform apply ────────────────────────────────────────────
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform init
+        run: cd infra && terraform init
+
+      - name: Terraform apply
+        run: |
+          cd infra
+          terraform apply -auto-approve \
+            -var="my_ip_cidr=10.0.0.0/32" \
+            -var="github_username=${{ github.repository_owner }}"
+
+      # ── Deploy Glue scripts to S3 ──────────────────────────────────
+      - name: Check if Glue scripts changed
+        id: glue_changed
+        run: |
+          git diff HEAD~1 HEAD --name-only \
+            | grep -q "^transform/" \
+            && echo "changed=true"  >> $GITHUB_OUTPUT \
+            || echo "changed=false" >> $GITHUB_OUTPUT
+
+      - name: Upload Glue scripts to S3
+        if: steps.glue_changed.outputs.changed == 'true'
+        run: |
+          aws s3 sync transform/ \
+            s3://urbanpulse-scripts/glue/ \
+            --exclude "*.pyc" \
+            --exclude "__pycache__/*"
+          echo "Glue scripts uploaded"
+
+      # ── Deploy DAGs to EC2 ─────────────────────────────────────────
+      - name: Check if DAGs changed
+        id: dags_changed
+        run: |
+          git diff HEAD~1 HEAD --name-only \
+            | grep -q "^dags/" \
+            && echo "changed=true"  >> $GITHUB_OUTPUT \
+            || echo "changed=false" >> $GITHUB_OUTPUT
+
       - name: Write SSH key
+        if: steps.dags_changed.outputs.changed == 'true'
         run: |
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/key.pem
           chmod 600 /tmp/key.pem
 
-      - name: Copy docker-compose and requirements to EC2
-        run: |
-          scp -i /tmp/key.pem \
-            -o StrictHostKeyChecking=no \
-            docker-compose.yml requirements.txt setup.sh \
-            ec2-user@${{ secrets.EC2_PUBLIC_IP }}:~/urbanpulse/
-
-      # ── 2. Copy DAG files to EC2 ───────────────────────────────────
       - name: Deploy DAGs to EC2
+        if: steps.dags_changed.outputs.changed == 'true'
         run: |
           scp -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             dags/*.py \
             ec2-user@${{ secrets.EC2_PUBLIC_IP }}:~/urbanpulse/dags/
-        # Airflow picks up new DAGs within 30 seconds automatically
-        # No restart needed
+          echo "DAGs deployed — Airflow picks up in 30s"
 
-      # ── 3. Restart containers only if requirements changed ─────────
+      # ── Restart Airflow if requirements changed ────────────────────
       - name: Check if requirements changed
         id: req_changed
         run: |
-          git diff HEAD~1 HEAD --name-only | grep -q requirements.txt \
-            && echo "changed=true" >> $GITHUB_OUTPUT \
+          git diff HEAD~1 HEAD --name-only \
+            | grep -q "requirements.txt" \
+            && echo "changed=true"  >> $GITHUB_OUTPUT \
             || echo "changed=false" >> $GITHUB_OUTPUT
 
-      - name: Restart Airflow if requirements changed
+      - name: Write SSH key for restart
+        if: steps.req_changed.outputs.changed == 'true'
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/key.pem
+          chmod 600 /tmp/key.pem
+
+      - name: Restart Airflow containers
         if: steps.req_changed.outputs.changed == 'true'
         run: |
           ssh -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
-            "cd ~/urbanpulse && docker compose restart airflow-webserver airflow-scheduler"
+            "cd ~/urbanpulse && \
+             docker compose restart \
+               airflow-webserver airflow-scheduler"
+          echo "Airflow restarted with new requirements"
 
+      # ── Cleanup ────────────────────────────────────────────────────
       - name: Cleanup SSH key
-        run: rm /tmp/key.pem
+        if: always()
+        run: rm -f /tmp/key.pem
 
-      # ── 4. Verify DAG is live ──────────────────────────────────────
-      - name: Verify DAG deployed
+      # ── Verify deployment ──────────────────────────────────────────
+      - name: Verify DAG is live
+        if: steps.dags_changed.outputs.changed == 'true'
         run: |
-          sleep 35  # wait for Airflow 30s DAG scan
-          ssh -i /tmp/key.pem \
+          echo "Waiting 35s for Airflow DAG scan..."
+          sleep 35
+
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/key.pem
+          chmod 600 /tmp/key.pem
+
+          dag_list=$(ssh -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
-            "docker compose -f ~/urbanpulse/docker-compose.yml exec -T \
-             airflow-scheduler airflow dags list" | grep urbanpulse_daily_pipeline
+            "docker compose \
+              -f ~/urbanpulse/docker-compose.yml \
+              exec -T airflow-scheduler \
+              airflow dags list 2>/dev/null")
+
+          rm -f /tmp/key.pem
+
+          echo "$dag_list"
+
+          echo "$dag_list" | grep -q "urbanpulse_daily_pipeline" \
+            && echo "DAG verified live" \
+            || (echo "DAG not found" && exit 1)
+
+      # ── Post deploy summary ────────────────────────────────────────
+      - name: Deploy summary
+        run: |
+          echo "================================================"
+          echo "UrbanPulse deploy complete"
+          echo "Terraform:    applied"
+          echo "Glue scripts: ${{ steps.glue_changed.outputs.changed == 'true' && 'deployed' || 'unchanged' }}"
+          echo "DAGs:         ${{ steps.dags_changed.outputs.changed == 'true' && 'deployed' || 'unchanged' }}"
+          echo "Airflow:      ${{ steps.req_changed.outputs.changed == 'true' && 'restarted' || 'running' }}"
+          echo "================================================"
