@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: mart_zone_hourly_demand
+    description: "Trip demand by pickup zone and hour — primary Gold table"
+    columns:
+      - name: trip_count
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: avg_fare
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 3.0"
+      - name: pickup_hour
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "between 0 and 23"
+
+  - name: mart_fare_analysis
+    description: "Fare and tip analysis by zone, payment type, and time"
+    columns:
+      - name: avg_tip_pct
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: pct_trips_with_tip
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "between 0 and 100"
+
+  - name: mart_payment_trends
+    description: "Payment method breakdown by borough and time"
+    columns:
+      - name: payment_label
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["credit_card","cash","no_charge",
+                         "dispute","unknown","voided_trip","other"]
+      - name: payment_share_pct
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "between 0 and 100"
+
+  - name: mart_borough_comparison
+    description: "Cross-borough trip patterns and revenue matrix"
+    columns:
+      - name: trip_count
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: is_cross_borough
+        tests:
+          - not_null

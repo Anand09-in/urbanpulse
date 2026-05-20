@@ -1,0 +1,14 @@
+urbanpulse:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      s3_staging_dir: s3://urbanpulse-athena-results/dbt/
+      region_name: ap-south-1
+      database: awsdatacatalog
+      schema: urbanpulse_gold
+      work_group: urbanpulse-wg
+      aws_profile_name: urbanpulse
+      threads: 4
+      poll_interval: 5
+      num_retries: 3

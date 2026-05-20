@@ -1,0 +1,57 @@
+version: 2
+
+sources:
+  - name: urbanpulse_silver
+    database: awsdatacatalog
+    schema: urbanpulse_silver
+    tables:
+      - name: trips
+        description: "Cleaned NYC TLC trip data — Bronze → Silver via Glue ETL"
+        freshness:
+          warn_after:  {count: 25, period: hour}
+          error_after: {count: 48, period: hour}
+        loaded_at_field: pickup_datetime
+
+models:
+  - name: stg_trips
+    description: "Standardised staging layer for all NYC TLC taxi trips"
+    columns:
+      - name: taxi_type
+        description: "yellow or green"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["yellow", "green"]
+
+      - name: pickup_datetime
+        tests:
+          - not_null
+
+      - name: fare_amount
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 3.0"
+
+      - name: trip_distance_miles
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
+
+      - name: pickup_location_id
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "between 1 and 263"
+
+      - name: payment_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6]
+                quote: false
