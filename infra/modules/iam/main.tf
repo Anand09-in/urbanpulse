@@ -36,6 +36,11 @@ resource "aws_iam_role_policy" "lambda_s3" {
         Effect   = "Allow"
         Action   = ["sqs:SendMessage"]
         Resource = "arn:aws:sqs:*:*:${var.project}-*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
+        Resource = var.kms_key_arn
       }
     ]
   })
@@ -73,6 +78,11 @@ resource "aws_iam_role_policy" "glue_s3" {
         "arn:aws:s3:::urbanpulse-gold",   "arn:aws:s3:::urbanpulse-gold/*",
         "arn:aws:s3:::urbanpulse-scripts","arn:aws:s3:::urbanpulse-scripts/*"
       ]
+    },
+    {
+      Effect   = "Allow"
+      Action   = ["kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
+      Resource = var.kms_key_arn
     }]
   })
 }

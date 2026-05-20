@@ -39,8 +39,9 @@ module "networking" {
 }
 
 module "iam" {
-  source  = "./modules/iam"
-  project = var.project
+  source      = "./modules/iam"
+  project     = var.project
+  kms_key_arn = module.s3.kms_key_arn
 }
 
 module "ec2" {
@@ -66,4 +67,14 @@ module "lambda" {
   lambda_role_arn  = module.iam.lambda_role_arn
   bronze_bucket    = module.s3.bronze_bucket
   kms_key_arn      = module.s3.kms_key_arn
+}
+
+module "glue" {
+  source         = "./modules/glue"
+  project        = var.project
+  glue_role_arn  = module.iam.glue_role_arn
+  bronze_bucket  = module.s3.bronze_bucket
+  silver_bucket  = module.s3.silver_bucket
+  gold_bucket    = module.s3.gold_bucket
+  scripts_bucket = module.s3.scripts_bucket
 }
