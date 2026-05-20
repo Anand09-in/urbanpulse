@@ -70,6 +70,7 @@ resource "aws_iam_role_policy" "github_actions_policy" {
           "lambda:*", "glue:*", "athena:*",
           "s3:*", "iam:*", "ec2:*",
           "logs:*", "events:*", "sqs:*",
+          "sns:*", "cloudwatch:*",
           "kms:Describe*", "kms:List*", "kms:Get*",
           "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext",
           "kms:Decrypt", "kms:Encrypt", "kms:ReEncrypt*", "kms:CreateGrant"
