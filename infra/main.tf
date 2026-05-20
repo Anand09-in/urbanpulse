@@ -53,3 +53,17 @@ module "ec2" {
   github_repo      = var.github_repo      
 }
 
+module "s3" {
+  source     = "./modules/s3"
+  project    = var.project
+  aws_region = var.aws_region
+}
+
+module "lambda" {
+  source           = "./modules/lambda"
+  project          = var.project
+  environment      = var.environment
+  lambda_role_arn  = module.iam.lambda_role_arn
+  bronze_bucket    = module.s3.bronze_bucket
+  kms_key_arn      = module.s3.kms_key_arn
+}

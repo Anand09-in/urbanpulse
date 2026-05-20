@@ -27,3 +27,6 @@ infra/terraform.tfvars
 commands.txt
 poetry.lock 
 pyproject.toml
+
+data/
+/lambda_curl_test

@@ -51,7 +51,7 @@ resource "aws_security_group" "ec2_airflow" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip_cidr]
+    cidr_blocks = [var.my_ip_cidr]  #0.0.0.0 for open acces to github actions
   }
 
   ingress {

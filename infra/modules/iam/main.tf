@@ -19,7 +19,7 @@ resource "aws_iam_role_policy" "lambda_s3" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
+        Action   = ["s3:GetObject", "s3:HeadObject", "s3:PutObject", "s3:CopyObject", "s3:ListBucket"]
         Resource = [
           "arn:aws:s3:::urbanpulse-bronze",
           "arn:aws:s3:::urbanpulse-bronze/*",
@@ -31,6 +31,11 @@ resource "aws_iam_role_policy" "lambda_s3" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:SendMessage"]
+        Resource = "arn:aws:sqs:*:*:${var.project}-*"
       }
     ]
   })
