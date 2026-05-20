@@ -87,3 +87,16 @@ module "oidc" {
   github_username = var.github_username
   github_repo     = var.github_repo
 }
+
+module "monitoring" {
+  source               = "./modules/monitoring"
+  project              = var.project
+  aws_region           = var.aws_region
+  alert_email          = var.alert_email
+  lambda_function_name = module.lambda.lambda_function_name
+  glue_job_name        = module.glue.bronze_to_silver_job_name
+  bronze_bucket        = module.s3.bronze_bucket
+  silver_bucket        = module.s3.silver_bucket
+  gold_bucket          = module.s3.gold_bucket
+  athena_workgroup     = module.glue.athena_workgroup
+}

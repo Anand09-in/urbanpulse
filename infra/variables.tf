@@ -46,3 +46,9 @@ variable "public_key_path" {
   description = "Path to SSH public key for EC2 key pair"
   default     = "~/.ssh/urbanpulse_ci.pub"
 }
+
+variable "alert_email" {
+  type        = string
+  description = "Email address for CloudWatch alarm notifications"
+  default     = ""
+}

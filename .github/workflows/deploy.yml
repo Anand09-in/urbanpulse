@@ -48,7 +48,8 @@ jobs:
           cd infra
           terraform apply -auto-approve \
             -var="my_ip_cidr=10.0.0.0/32" \
-            -var="github_username=${{ github.repository_owner }}"
+            -var="github_username=${{ github.repository_owner }}" \
+            -var="alert_email=${{ secrets.ALERT_EMAIL }}"
 
       - name: Get EC2 public IP from Terraform output
         id: tf_outputs

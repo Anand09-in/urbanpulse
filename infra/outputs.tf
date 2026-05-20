@@ -48,3 +48,5 @@ output "gold_crawler"      { value = module.glue.gold_crawler_name }
 output "github_actions_role_arn" {
   value = module.oidc.github_actions_role_arn
 }
+
+output "dashboard_url" { value = module.monitoring.dashboard_url }
