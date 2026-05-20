@@ -5,3 +5,5 @@ variable "bronze_bucket"  { type = string }
 variable "silver_bucket"  { type = string }
 variable "gold_bucket"    { type = string }
 variable "scripts_bucket" { type = string }
+variable "athena_bucket" { type = string }
+variable "kms_key_arn"   { type = string }

@@ -83,3 +83,89 @@ output "bronze_to_silver_job_name" { value = aws_glue_job.bronze_to_silver.name 
 output "silver_crawler_name"       { value = aws_glue_crawler.silver_crawler.name }
 output "silver_db_name"            { value = aws_glue_catalog_database.silver_db.name }
 output "gold_db_name"              { value = aws_glue_catalog_database.gold_db.name }
+
+
+# ── Gold Crawler ───────────────────────────────────────────────────
+resource "aws_glue_crawler" "gold_crawler" {
+  name          = "${var.project}-gold-crawler"
+  role          = var.glue_role_arn
+  database_name = aws_glue_catalog_database.gold_db.name
+
+  catalog_target {
+    database_name = aws_glue_catalog_database.gold_db.name
+    tables = [
+      "mart_zone_hourly_demand",
+      "mart_fare_analysis",
+      "mart_payment_trends",
+      "mart_borough_comparison",
+    ]
+  }
+
+  schema_change_policy {
+    update_behavior = "UPDATE_IN_DATABASE"
+    delete_behavior = "LOG"
+  }
+}
+
+# ── Athena Workgroup ───────────────────────────────────────────────
+resource "aws_athena_workgroup" "urbanpulse" {
+  name        = "${var.project}-wg"
+  description = "UrbanPulse analytics workgroup"
+
+  configuration {
+    enforce_workgroup_configuration    = true
+    publish_cloudwatch_metrics_enabled = true
+
+    result_configuration {
+      output_location = "s3://${var.athena_bucket}/"
+
+      encryption_configuration {
+        encryption_option = "SSE_KMS"
+        kms_key_arn  = var.kms_key_arn
+      }
+    }
+
+    # Safety cap — stops runaway queries on free tier
+    bytes_scanned_cutoff_per_query = 1073741824  # 1GB max per query
+  }
+}
+
+# ── Athena Named Queries — saved in console for portfolio ──────────
+resource "aws_athena_named_query" "peak_demand_zones" {
+  name      = "01_peak_demand_zones"
+  workgroup = aws_athena_workgroup.urbanpulse.name
+  database  = aws_glue_catalog_database.gold_db.name
+  query     = file("${path.module}/../../../analytics/01_peak_demand_zones.sql")
+}
+
+resource "aws_athena_named_query" "fare_anomaly" {
+  name      = "02_fare_anomaly_detection"
+  workgroup = aws_athena_workgroup.urbanpulse.name
+  database  = aws_glue_catalog_database.gold_db.name
+  query     = file("${path.module}/../../../analytics/02_fare_anomaly_detection.sql")
+}
+
+resource "aws_athena_named_query" "borough_revenue" {
+  name      = "03_borough_revenue_matrix"
+  workgroup = aws_athena_workgroup.urbanpulse.name
+  database  = aws_glue_catalog_database.gold_db.name
+  query     = file("${path.module}/../../../analytics/03_borough_revenue_matrix.sql")
+}
+
+resource "aws_athena_named_query" "tip_behaviour" {
+  name      = "04_tip_behaviour_analysis"
+  workgroup = aws_athena_workgroup.urbanpulse.name
+  database  = aws_glue_catalog_database.gold_db.name
+  query     = file("${path.module}/../../../analytics/04_tip_behaviour_analysis.sql")
+}
+
+resource "aws_athena_named_query" "payment_shift" {
+  name      = "05_payment_method_shift"
+  workgroup = aws_athena_workgroup.urbanpulse.name
+  database  = aws_glue_catalog_database.gold_db.name
+  query     = file("${path.module}/../../../analytics/05_payment_method_shift.sql")
+}
+
+# ── Outputs ────────────────────────────────────────────────────────
+output "athena_workgroup"     { value = aws_athena_workgroup.urbanpulse.name }
+output "gold_crawler_name"    { value = aws_glue_crawler.gold_crawler.name }

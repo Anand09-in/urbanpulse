@@ -41,3 +41,6 @@ output "dlq_url"              { value = module.lambda.dlq_url }
 output "glue_job_name"     { value = module.glue.bronze_to_silver_job_name }
 output "silver_crawler"    { value = module.glue.silver_crawler_name }
 output "silver_db"         { value = module.glue.silver_db_name }
+
+output "athena_workgroup"  { value = module.glue.athena_workgroup }
+output "gold_crawler"      { value = module.glue.gold_crawler_name }

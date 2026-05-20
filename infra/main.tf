@@ -77,4 +77,6 @@ module "glue" {
   silver_bucket  = module.s3.silver_bucket
   gold_bucket    = module.s3.gold_bucket
   scripts_bucket = module.s3.scripts_bucket
+  athena_bucket  = module.s3.athena_bucket   # NEW
+  kms_key_arn    = module.s3.kms_key_arn     # NEW
 }
