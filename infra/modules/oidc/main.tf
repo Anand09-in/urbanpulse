@@ -50,16 +50,9 @@ resource "aws_iam_role_policy" "github_actions_policy" {
         Action = ["s3:GetObject", "s3:PutObject",
                   "s3:DeleteObject", "s3:ListBucket"]
         Resource = [
-          "arn:aws:s3:::urbanpulse-tf-state",
-          "arn:aws:s3:::urbanpulse-tf-state/*"
+          "arn:aws:s3:::urbanpulse-tf-state-798644229089",
+          "arn:aws:s3:::urbanpulse-tf-state-798644229089/*"
         ]
-      },
-      {
-        Sid    = "TerraformLock"
-        Effect = "Allow"
-        Action = ["dynamodb:GetItem", "dynamodb:PutItem",
-                  "dynamodb:DeleteItem"]
-        Resource = "arn:aws:dynamodb:*:*:table/urbanpulse-tf-locks"
       },
       {
         Sid    = "DeployScripts"
