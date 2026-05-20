@@ -91,14 +91,8 @@ resource "aws_glue_crawler" "gold_crawler" {
   role          = var.glue_role_arn
   database_name = aws_glue_catalog_database.gold_db.name
 
-  catalog_target {
-    database_name = aws_glue_catalog_database.gold_db.name
-    tables = [
-      "mart_zone_hourly_demand",
-      "mart_fare_analysis",
-      "mart_payment_trends",
-      "mart_borough_comparison",
-    ]
+  s3_target {
+    path = "s3://${var.gold_bucket}/"
   }
 
   schema_change_policy {
@@ -109,8 +103,9 @@ resource "aws_glue_crawler" "gold_crawler" {
 
 # ── Athena Workgroup ───────────────────────────────────────────────
 resource "aws_athena_workgroup" "urbanpulse" {
-  name        = "${var.project}-wg"
-  description = "UrbanPulse analytics workgroup"
+  name          = "${var.project}-wg"
+  description   = "UrbanPulse analytics workgroup"
+  force_destroy = true
 
   configuration {
     enforce_workgroup_configuration    = true

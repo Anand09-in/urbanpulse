@@ -23,8 +23,9 @@ locals {
 
 # ── Create all 5 buckets ──────────────────────────────────────────
 resource "aws_s3_bucket" "buckets" {
-  for_each = local.buckets
-  bucket   = each.value
+  for_each      = local.buckets
+  bucket        = each.value
+  force_destroy = true
 }
 
 # ── Versioning on bronze + silver + gold only ─────────────────────
