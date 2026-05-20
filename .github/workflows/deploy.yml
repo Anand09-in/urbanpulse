@@ -28,6 +28,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-south-1
 
+      # ── Write SSH public key so Terraform file() can read it ──────
+      - name: Write EC2 public key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PUBLIC_KEY }}" > ~/.ssh/urbanpulse.pub
+
       # ── Terraform apply ────────────────────────────────────────────
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

@@ -100,6 +100,11 @@ jobs:
         with:
           terraform_version: 1.10.0
 
+      - name: Write EC2 public key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PUBLIC_KEY }}" > ~/.ssh/urbanpulse.pub
+
       - name: Terraform init
         run: cd infra && terraform init
 
