@@ -9,18 +9,18 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "urbanpulse-tf-state-798644229089"
-    key            = "infra/terraform.tfstate"
-    region         = "ap-south-1"
-    use_lockfile   = true
-    encrypt        = true
-    profile        = "urbanpulse"
+    bucket       = "urbanpulse-tf-state-798644229089"
+    key          = "infra/terraform.tfstate"
+    region       = "ap-south-1"
+    use_lockfile = true
+    encrypt      = true
+    # profile omitted — use AWS_PROFILE env var locally, OIDC env vars in CI
   }
 }
 
 provider "aws" {
   region  = var.aws_region
-  profile = var.aws_profile
+  profile = var.aws_profile != "" ? var.aws_profile : null
 
   default_tags {
     tags = {

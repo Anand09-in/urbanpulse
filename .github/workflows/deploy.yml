@@ -13,6 +13,8 @@ jobs:
   deploy:
     name: Deploy UrbanPulse
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_profile: ""
 
     steps:
       - uses: actions/checkout@v4
