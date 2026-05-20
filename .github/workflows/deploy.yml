@@ -60,11 +60,12 @@ jobs:
       - name: Check if Glue scripts changed
         id: glue_changed
         run: |
-          git diff HEAD~1 HEAD --name-only 2>/dev/null \
-            || git show --name-only --format="" HEAD \
-            | grep -q "^transform/" \
-            && echo "changed=true"  >> $GITHUB_OUTPUT \
-            || echo "changed=false" >> $GITHUB_OUTPUT
+          if git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -q "^transform/" || \
+             git show --name-only --format="" HEAD | grep -q "^transform/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Glue scripts to S3
         if: steps.glue_changed.outputs.changed == 'true'
@@ -79,11 +80,12 @@ jobs:
       - name: Check if DAGs changed
         id: dags_changed
         run: |
-          git diff HEAD~1 HEAD --name-only 2>/dev/null \
-            || git show --name-only --format="" HEAD \
-            | grep -q "^dags/" \
-            && echo "changed=true"  >> $GITHUB_OUTPUT \
-            || echo "changed=false" >> $GITHUB_OUTPUT
+          if git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -q "^dags/" || \
+             git show --name-only --format="" HEAD | grep -q "^dags/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Write SSH key
         if: steps.dags_changed.outputs.changed == 'true'
@@ -108,11 +110,12 @@ jobs:
       - name: Check if requirements changed
         id: req_changed
         run: |
-          git diff HEAD~1 HEAD --name-only 2>/dev/null \
-            || git show --name-only --format="" HEAD \
-            | grep -q "requirements.txt" \
-            && echo "changed=true"  >> $GITHUB_OUTPUT \
-            || echo "changed=false" >> $GITHUB_OUTPUT
+          if git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -q "requirements.txt" || \
+             git show --name-only --format="" HEAD | grep -q "requirements.txt"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Write SSH key for restart
         if: steps.req_changed.outputs.changed == 'true'
