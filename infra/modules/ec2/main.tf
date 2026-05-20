@@ -23,7 +23,7 @@ resource "aws_instance" "airflow" {
   key_name               = aws_key_pair.urbanpulse.key_name
 
   root_block_device {
-    volume_size = 20       # free tier gives 30GB EBS total
+    volume_size = 30       # minimum required by Amazon Linux 2023 AMI snapshot
     volume_type = "gp2"
     encrypted   = true
   }
