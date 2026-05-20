@@ -32,7 +32,7 @@ jobs:
       - name: Write EC2 public key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_PUBLIC_KEY }}" > ~/.ssh/urbanpulse.pub
+          echo "${{ secrets.EC2_PUBLIC_KEY }}" > ~/.ssh/urbanpulse_ci.pub
 
       # ── Terraform apply ────────────────────────────────────────────
       - name: Setup Terraform

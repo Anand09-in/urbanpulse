@@ -49,7 +49,7 @@ module "ec2" {
   project          = var.project
   public_subnet_id = module.networking.public_subnet_a
   ec2_sg_id        = module.networking.ec2_sg_id
-  public_key_path  = "~/.ssh/urbanpulse.pub"
+  public_key_path  = var.public_key_path
   github_username  = var.github_username  
   github_repo      = var.github_repo      
 }

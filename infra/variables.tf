@@ -40,3 +40,9 @@ variable "github_repo" {
   description = "Repo name e.g. urbanpulse"
   default     = "urbanpulse"
 }
+
+variable "public_key_path" {
+  type        = string
+  description = "Path to SSH public key for EC2 key pair"
+  default     = "~/.ssh/urbanpulse_ci.pub"
+}

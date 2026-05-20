@@ -103,7 +103,7 @@ resource "aws_iam_role_policy" "ec2_policy" {
 # SSH key pair — generated locally, public key uploaded to AWS
 resource "aws_key_pair" "urbanpulse" {
   key_name   = "${var.project}-keypair"
-  public_key = file(var.public_key_path)
+  public_key = file(pathexpand(var.public_key_path))
 }
 
 resource "aws_eip" "airflow" {
