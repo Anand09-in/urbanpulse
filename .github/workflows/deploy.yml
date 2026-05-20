@@ -127,7 +127,7 @@ jobs:
             -o StrictHostKeyChecking=no \
             ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
             "cd ~/urbanpulse && \
-             docker compose restart \
+             /usr/local/lib/docker/cli-plugins/docker-compose restart \
                airflow-webserver airflow-scheduler"
           echo "Airflow restarted with new requirements"
 
@@ -149,7 +149,7 @@ jobs:
           dag_list=$(ssh -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
-            "docker compose \
+            "/usr/local/lib/docker/cli-plugins/docker-compose \
               -f ~/urbanpulse/docker-compose.yml \
               exec -T airflow-scheduler \
               airflow dags list 2>/dev/null")
