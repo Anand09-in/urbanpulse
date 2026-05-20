@@ -94,6 +94,10 @@ jobs:
       - name: Deploy DAGs to EC2
         if: steps.dags_changed.outputs.changed == 'true'
         run: |
+          ssh -i /tmp/key.pem \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
+            "mkdir -p ~/urbanpulse/dags"
           scp -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             dags/*.py \
