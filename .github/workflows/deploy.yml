@@ -44,11 +44,18 @@ jobs:
             -var="my_ip_cidr=10.0.0.0/32" \
             -var="github_username=${{ github.repository_owner }}"
 
+      - name: Get EC2 public IP from Terraform output
+        id: tf_outputs
+        run: |
+          EC2_IP=$(cd infra && terraform output -raw ec2_public_ip)
+          echo "ec2_ip=${EC2_IP}" >> $GITHUB_OUTPUT
+
       # ── Deploy Glue scripts to S3 ──────────────────────────────────
       - name: Check if Glue scripts changed
         id: glue_changed
         run: |
-          git diff HEAD~1 HEAD --name-only \
+          git diff HEAD~1 HEAD --name-only 2>/dev/null \
+            || git show --name-only --format="" HEAD \
             | grep -q "^transform/" \
             && echo "changed=true"  >> $GITHUB_OUTPUT \
             || echo "changed=false" >> $GITHUB_OUTPUT
@@ -66,7 +73,8 @@ jobs:
       - name: Check if DAGs changed
         id: dags_changed
         run: |
-          git diff HEAD~1 HEAD --name-only \
+          git diff HEAD~1 HEAD --name-only 2>/dev/null \
+            || git show --name-only --format="" HEAD \
             | grep -q "^dags/" \
             && echo "changed=true"  >> $GITHUB_OUTPUT \
             || echo "changed=false" >> $GITHUB_OUTPUT
@@ -83,14 +91,15 @@ jobs:
           scp -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
             dags/*.py \
-            ec2-user@${{ secrets.EC2_PUBLIC_IP }}:~/urbanpulse/dags/
+            ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }}:~/urbanpulse/dags/
           echo "DAGs deployed — Airflow picks up in 30s"
 
       # ── Restart Airflow if requirements changed ────────────────────
       - name: Check if requirements changed
         id: req_changed
         run: |
-          git diff HEAD~1 HEAD --name-only \
+          git diff HEAD~1 HEAD --name-only 2>/dev/null \
+            || git show --name-only --format="" HEAD \
             | grep -q "requirements.txt" \
             && echo "changed=true"  >> $GITHUB_OUTPUT \
             || echo "changed=false" >> $GITHUB_OUTPUT
@@ -106,7 +115,7 @@ jobs:
         run: |
           ssh -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
-            ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
+            ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
             "cd ~/urbanpulse && \
              docker compose restart \
                airflow-webserver airflow-scheduler"
@@ -129,7 +138,7 @@ jobs:
 
           dag_list=$(ssh -i /tmp/key.pem \
             -o StrictHostKeyChecking=no \
-            ec2-user@${{ secrets.EC2_PUBLIC_IP }} \
+            ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
             "docker compose \
               -f ~/urbanpulse/docker-compose.yml \
               exec -T airflow-scheduler \

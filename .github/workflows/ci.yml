@@ -26,10 +26,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements.txt') }}
+          key: pip-${{ hashFiles('requirements-test.txt') }}
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest --quiet
+        run: pip install -r requirements-test.txt pytest --quiet
 
       - name: Run Lambda unit tests
         run: pytest ingestion/tests/ -v --tb=short
@@ -63,16 +63,22 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
       - name: Install dbt
-        run: pip install dbt-athena-community dbt-utils --quiet
+        run: pip install dbt-athena-community --quiet
+
+      - name: dbt deps
+        run: cd dbt/urbanpulse && dbt deps --profiles-dir .
 
       - name: dbt compile (syntax check only)
         run: |
           cd dbt/urbanpulse
-          dbt compile --profiles-dir . \
-            --vars '{"skip_athena_connection": true}' \
-            2>&1 | grep -v "WARN\|INFO" || true
-        # compile catches SQL syntax errors without needing AWS connection
+          dbt compile --profiles-dir .
 
   # ── Job 3: Terraform validate + security scan ──────────────────────
   terraform-checks:

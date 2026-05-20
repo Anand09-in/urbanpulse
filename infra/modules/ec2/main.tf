@@ -106,5 +106,10 @@ resource "aws_key_pair" "urbanpulse" {
   public_key = file(var.public_key_path)
 }
 
-output "ec2_public_ip"   { value = aws_instance.airflow.public_ip }
+resource "aws_eip" "airflow" {
+  instance = aws_instance.airflow.id
+  domain   = "vpc"
+}
+
+output "ec2_public_ip"   { value = aws_eip.airflow.public_ip }
 output "ec2_instance_id" { value = aws_instance.airflow.id }

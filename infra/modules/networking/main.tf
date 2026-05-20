@@ -47,15 +47,15 @@ resource "aws_security_group" "ec2_airflow" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "SSH"
+    description = "SSH - open to all, key-pair protected"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip_cidr]  #0.0.0.0 for open acces to github actions
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description = "Airflow UI"
+    description = "Airflow UI - restricted to your IP"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
