@@ -16,6 +16,14 @@ ENV
 echo "==> Stopping old containers if any..."
 docker-compose down 2>/dev/null || true
 
+echo "==> Starting postgres..."
+docker-compose up -d postgres
+
+echo "==> Waiting for postgres to be healthy..."
+until docker-compose exec -T postgres pg_isready -U airflow 2>/dev/null; do
+  sleep 2
+done
+
 echo "==> Initialising Airflow DB and admin user..."
 docker-compose run --rm airflow-init
 
