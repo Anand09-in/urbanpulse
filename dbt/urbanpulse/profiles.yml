@@ -8,7 +8,6 @@ urbanpulse:
       database: awsdatacatalog
       schema: urbanpulse_gold
       work_group: urbanpulse-wg
-      aws_profile_name: urbanpulse
       threads: 4
       poll_interval: 5
       num_retries: 3

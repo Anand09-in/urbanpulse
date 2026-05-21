@@ -88,9 +88,11 @@ resource "aws_iam_role_policy" "ec2_policy" {
         Effect = "Allow"
         Action = [
           "s3:*",
-          "glue:StartJobRun", "glue:GetJobRun", "glue:StartCrawler", "glue:GetCrawler",
+          "glue:*",
           "lambda:InvokeFunction",
-          "athena:StartQueryExecution", "athena:GetQueryExecution", "athena:GetQueryResults",
+          "athena:*",
+          "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext",
+          "kms:Decrypt", "kms:Encrypt", "kms:ReEncrypt*", "kms:CreateGrant",
           "logs:*"
         ]
         Resource = "*"
