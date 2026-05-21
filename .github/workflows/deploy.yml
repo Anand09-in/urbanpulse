@@ -88,7 +88,7 @@ jobs:
         run: |
           ssh -i /tmp/key.pem -o StrictHostKeyChecking=no \
             ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
-            "cd ~/urbanpulse && git pull && \
+            "cd ~/urbanpulse && git fetch origin && git reset --hard origin/main && \
              if ! docker-compose ps | grep -q 'Up'; then \
                echo 'Containers not running — running setup...' && bash setup.sh; \
              else \
