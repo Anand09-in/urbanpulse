@@ -4,6 +4,7 @@ set -e
 echo "==> Setting up UrbanPulse Airflow on EC2..."
 mkdir -p ~/urbanpulse/{logs,plugins}
 sudo chmod -R 777 ~/urbanpulse/logs ~/urbanpulse/plugins 2>/dev/null || true
+chmod -R 777 ~/urbanpulse/dbt 2>/dev/null || true
 cd ~/urbanpulse
 
 cat > .env << ENV

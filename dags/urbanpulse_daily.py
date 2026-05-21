@@ -118,7 +118,8 @@ with DAG(
         task_id="run_dbt_models",
         bash_command=(
             "cd /opt/airflow/dbt/urbanpulse && "
-            "dbt run  --profiles-dir . && "
+            "dbt deps --profiles-dir . && "
+            "dbt run --profiles-dir . && "
             "dbt test --profiles-dir ."
         ),
     )
