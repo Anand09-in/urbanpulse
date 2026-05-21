@@ -34,7 +34,7 @@ resource "aws_instance" "airflow" {
 
     # ── 1. System prerequisites ────────────────────────────────────
     yum update -y
-    yum install -y docker git python3-pip curl
+    yum install -y docker git python3-pip
     systemctl start docker
     systemctl enable docker
     usermod -aG docker ec2-user
