@@ -21,8 +21,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: ["yellow", "green"]
+              values: ["yellow", "green"]
 
       - name: pickup_datetime
         tests:
@@ -32,26 +31,22 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: ">= 3.0"
+              expression: ">= 3.0"
 
       - name: trip_distance_miles
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: "> 0"
+              expression: "> 0"
 
       - name: pickup_location_id
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: "between 1 and 263"
+              expression: "between 1 and 263"
 
       - name: payment_type
         tests:
           - accepted_values:
-              arguments:
-                values: [1, 2, 3, 4, 5, 6]
-                quote: false
+              values: [1, 2, 3, 4, 5, 6]
+              quote: false
