@@ -1,12 +1,10 @@
-cat > setup.sh << 'EOF'
 #!/bin/bash
 set -e
 
 echo "==> Setting up UrbanPulse Airflow on EC2..."
-mkdir -p ~/urbanpulse/{dags,logs,plugins}
+mkdir -p ~/urbanpulse/{logs,plugins}
 cd ~/urbanpulse
 
-# .env file
 cat > .env << ENV
 AIRFLOW_UID=50000
 AIRFLOW_GID=0
@@ -16,12 +14,12 @@ _AIRFLOW_WWW_USER_PASSWORD=admin
 ENV
 
 echo "==> Stopping old containers if any..."
-docker compose down 2>/dev/null || true
+docker-compose down 2>/dev/null || true
+
+echo "==> Initialising Airflow DB and admin user..."
+docker-compose run --rm airflow-init
 
 echo "==> Starting Airflow services..."
-docker compose up -d 
+docker-compose up -d airflow-webserver airflow-scheduler
 
-echo "==> Done. Airflow starting at port 8080"
-EOF
-
-chmod +x setup.sh
+echo "==> Done. Airflow will be ready at :8080 in ~60s"

@@ -56,7 +56,9 @@ NYC TLC Open Data
 ![Athena query](docs/screenshots/athena_peak_demand.png)
 
 ### dbt test results
-![dbt tests](docs/screenshots/dbt_tests.png)
+![dbt tests](docs/screenshots/dbt_test1.png)
+
+![dbt tests](docs/screenshots/dbt_test2.png)
 
 ---
 
@@ -84,7 +86,7 @@ NYC TLC Open Data
 - `not_null` + `accepted_values` on all key columns
 - Fare ≥ $3.00 (NYC base rate), duration 1–240 min
 - Location IDs within valid NYC range (1–263)
-- Source freshness: Silver must update within 26 hours
+- Trip distance > 0 and fare amount > 0
 
 ```
 dbt build
@@ -112,31 +114,56 @@ Five analytics queries saved in Athena workgroup `urbanpulse-wg`:
 ## Reproduce in 10 Commands
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/urbanpulse
-cd urbanpulse
+# 1. Clone
+git clone https://github.com/Anand09-in/urbanpulse && cd urbanpulse
 
-# 1. Bootstrap Terraform remote state (one-time only)
-aws s3api create-bucket --bucket urbanpulse-tf-state --region us-east-1
-aws dynamodb create-table --table-name urbanpulse-tf-locks \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST
+# 2. Generate a passphrase-free SSH key for EC2 access
+ssh-keygen -t ed25519 -f ~/.ssh/urbanpulse_ci -N ""
 
-# 2. Deploy all infrastructure
-cd infra && terraform init && terraform apply
+# 3. Bootstrap Terraform state bucket (one-time, ap-south-1)
+aws s3api create-bucket --bucket urbanpulse-tf-state-798644229089 \
+  --region ap-south-1 \
+  --create-bucket-configuration LocationConstraint=ap-south-1 \
+  --profile urbanpulse
 
-# 3. Ingest NYC TLC data into Bronze
-aws lambda invoke --function-name urbanpulse-ingest \
-  --payload '{"year":"2026","month":"01"}' response.json
+# 4. Deploy all infrastructure (~3 min)
+cd infra
+terraform init -backend-config="profile=urbanpulse"
+terraform apply \
+  -var="my_ip_cidr=$(curl -s ifconfig.me)/32" \
+  -var="github_username=Anand09-in" \
+  -var="alert_email=your@email.com"
 
-# 4. Run Glue ETL — Bronze to Silver
-aws glue start-job-run --job-name urbanpulse-bronze-to-silver \
-  --arguments '{"--year":"2026","--month":"01"}'
+# 5. Ingest NYC TLC data into Bronze
+aws lambda invoke \
+  --function-name urbanpulse-ingest \
+  --payload '{"year":"2026","month":"01"}' \
+  --cli-binary-format raw-in-base64-out \
+  --profile urbanpulse \
+  response.json
 
-# 5. Run dbt — Silver to Gold + all quality tests
-cd dbt/urbanpulse && dbt build
+# 6. Run Glue ETL — Bronze → Silver
+aws glue start-job-run \
+  --job-name urbanpulse-bronze-to-silver \
+  --arguments '{"--year":"2026","--month":"01"}' \
+  --profile urbanpulse
 
-# 6. Query results in Athena (workgroup: urbanpulse-wg)
+# 7. Run Silver crawler — register schema in Glue Catalog
+aws glue start-crawler --name urbanpulse-silver-crawler --profile urbanpulse
+
+# 8. Run dbt — Silver → Gold + 14 quality tests
+cd ../dbt/urbanpulse
+dbt run --profiles-dir . && dbt test --profiles-dir .
+
+# 9. Get EC2 IP and open Airflow UI
+terraform -chdir=../../infra output ec2_public_ip
+# Visit http://<EC2_IP>:8080  (admin / admin)
+
+# 10. Query Gold layer in Athena (workgroup: urbanpulse-wg)
+aws athena start-query-execution \
+  --query-string "SELECT * FROM urbanpulse_gold.mart_zone_hourly_demand LIMIT 10" \
+  --work-group urbanpulse-wg \
+  --profile urbanpulse
 ```
 
 ---

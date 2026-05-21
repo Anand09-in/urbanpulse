@@ -28,4 +28,4 @@ commands.txt
 poetry.lock 
 pyproject.toml
 
-/lambda_curl_test
+/lambda_invoke

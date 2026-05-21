@@ -18,6 +18,7 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./requirements.txt:/requirements.txt
+    - ./dbt:/opt/airflow/dbt
   user: "50000:0"
   depends_on:
     postgres:
