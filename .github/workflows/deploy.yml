@@ -78,29 +78,22 @@ jobs:
             --exclude "__pycache__/*"
           echo "Glue scripts uploaded"
 
-      # ── Re-run setup if docker-compose or setup.sh changed ───────────
-      - name: Check if setup changed
-        id: setup_changed
-        run: |
-          if git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -qE "^(docker-compose\.yml|setup\.sh)" || \
-             git show --name-only --format="" HEAD | grep -qE "^(docker-compose\.yml|setup\.sh)"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Write SSH key for setup
-        if: steps.setup_changed.outputs.changed == 'true'
+      # ── Ensure Airflow is running on EC2 ──────────────────────────
+      - name: Write SSH key for health check
         run: |
           printf '%s\n' "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/key.pem
           chmod 600 /tmp/key.pem
 
-      - name: Re-run setup on EC2
-        if: steps.setup_changed.outputs.changed == 'true'
+      - name: Ensure Airflow containers are up
         run: |
           ssh -i /tmp/key.pem -o StrictHostKeyChecking=no \
             ec2-user@${{ steps.tf_outputs.outputs.ec2_ip }} \
-            "cd ~/urbanpulse && git pull && bash setup.sh"
+            "cd ~/urbanpulse && git pull && \
+             if ! docker-compose ps | grep -q 'Up'; then \
+               echo 'Containers not running — running setup...' && bash setup.sh; \
+             else \
+               echo 'Containers already up'; \
+             fi"
 
       # ── Deploy DAGs to EC2 ─────────────────────────────────────────
       - name: Check if DAGs changed
