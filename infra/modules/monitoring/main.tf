@@ -193,12 +193,7 @@ resource "aws_cloudwatch_dashboard" "urbanpulse" {
           title   = "Glue — Job Run Status"
           view    = "timeSeries"
           metrics = [
-            ["Glue", "glue.driver.aggregate.numCompletedTasks",
-             "JobName", var.glue_job_name,
-             { stat = "Sum", color = "#2ca02c", label = "Completed" }],
-            ["Glue", "glue.driver.aggregate.numFailedTasks",
-             "JobName", var.glue_job_name,
-             { stat = "Sum", color = "#d62728", label = "Failed" }],
+            [{ "expression" = "SEARCH('{Glue,JobName,JobRunId} JobName=\"${var.glue_job_name}\" MetricName=\"glue.driver.aggregate.elapsedTime\"', 'Sum', 300)", "label" = "Elapsed Time (ms)", "id" = "e1", "color" = "#2ca02c" }]
           ]
           period = 300
           region = var.aws_region
