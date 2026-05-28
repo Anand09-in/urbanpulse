@@ -197,7 +197,7 @@ urbanpulse/
 
 ---
 
-## Interview Talking Points
+<!-- ## Key Features
 
 1. **Real data** — 3M+ rows of actual NYC taxi data, not simulated. Had to handle real issues: negative fares, invalid zone IDs, duplicate trips.
 2. **Medallion architecture** — Bronze / Silver / Gold with clear separation of concerns.
@@ -205,4 +205,4 @@ urbanpulse/
 4. **IaC from day one** — entire infrastructure reproducible with `terraform apply`.
 5. **Zero stored AWS keys** — GitHub Actions uses OIDC to assume an IAM role.
 6. **Cost aware** — $0.03/month. Documented every free tier decision.
-7. **CI/CD** — no manual deploys. DAGs, Glue scripts, and infra all deployed automatically.
+7. **CI/CD** — no manual deploys. DAGs, Glue scripts, and infra all deployed automatically. -->
